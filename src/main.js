@@ -48,28 +48,44 @@ resize()
 }
 function resize (){
 
-}
 
+}
+//Used this below code to target the meshes as the objects did not have names and this was suuuuuuper helpful 
+
+ // callback: (model) => {
+    //   model.traverse((child) => {
+    //     if (child.isMesh && child.name === 'Object_7') {
+    //       child.material = new THREE.MeshStandardMaterial({ color: 0xff0000 }) 
 function instances(){
   const ipod = new Model({
     url: './ipod_classic.glb',
     scene: scene,
     meshes: meshes,
-    scale: new THREE.Vector3(0.4,0.4, 0.4),
-    position: new THREE.Vector3(0,-0.2,3),
-    // replace: true, // was true now making false to remove the matcap of the galaxy 
-    name: 'ipod'
-callback: (model) => {
-      model.traverse((child) => {
-        if (child.isMesh) {
-          console.log(child.name)  // this will log every mesh name
+    scale: new THREE.Vector3(0.4, 0.4, 0.4),
+    position: new THREE.Vector3(0, -0.2, 3),
+    name: 'ipod',
+    callback: (model) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 512
+      canvas.height = 512
+      const ctx = canvas.getContext('2d')
 
- }
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = 'black'
+      ctx.font = '40px Arial'
+      ctx.fillText('Hello iPod!', 100, 100)
+
+      const canvasTexture = new THREE.CanvasTexture(canvas)
+
+      model.traverse((child) => {
+        if (child.isMesh && child.name === 'Object_7') {
+          child.material = new THREE.MeshStandardMaterial({ map: canvasTexture })
+        }
       })
     }
   })
   ipod.init()
-
 }
 
 
