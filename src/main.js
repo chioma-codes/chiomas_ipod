@@ -15,29 +15,42 @@ const lights = {}
 let screenCanvas, screenCtx, screenTexture
 let spotifyProfile = null
 let spotifyTrack = null
+let cachedAlbumArt = null
+let cachedAlbumUrl = null
+let cachedProfilePic = null
+let cachedProfileUrl = null
 
 // handle spotify auth
 const params = new URLSearchParams(window.location.search)
 const code = params.get('code')
 
 if (!code) {
-  redirectToSpotify()
+  const existingToken = localStorage.getItem('token')
+  if (!existingToken || existingToken === 'undefined') {
+    redirectToSpotify()
+  } else {
+    init()
+  }
 } else {
-  const token = await getAccessToken(code)
-  console.log('token received:', token)  // check if token is coming through
-  localStorage.setItem('token', token)
+  const existingToken = localStorage.getItem('token')
+  if (!existingToken || existingToken === 'undefined') {
+    const newToken = await getAccessToken(code)
+    console.log('token received:', newToken)
+    localStorage.setItem('token', newToken)
+  }
+  window.history.replaceState({}, document.title, '/')
   init()
 }
 
 function init() {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  document.body.appendChild(renderer.domElement)
   camera.position.z = 5
 
   lights.default = addLight()
   scene.add(lights.default)
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.5)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
   scene.add(ambientLight)
 
   instances()
@@ -56,8 +69,8 @@ function instances(){
     name: 'ipod',
     callback: (model) => {
       screenCanvas = document.createElement('canvas')
-      screenCanvas.width = 512
-      screenCanvas.height = 512
+      screenCanvas.width = 1024
+      screenCanvas.height = 1024
       screenCtx = screenCanvas.getContext('2d')
       screenTexture = new THREE.CanvasTexture(screenCanvas)
       screenTexture.center.set(0.5, 0.5)
@@ -75,10 +88,21 @@ function instances(){
 
 async function fetchSpotifyData() {
   const token = localStorage.getItem('token')
-  console.log('fetching with token:', token)  // check token every fetch
-  if (!token) return
+  if (!token || token === 'undefined') {
+    localStorage.clear()
+    redirectToSpotify()
+    return
+  }
 
-  spotifyProfile = await getProfile(token)
+  const profile = await getProfile(token)
+
+  if (profile.error && profile.error.status === 401) {
+    localStorage.clear()
+    redirectToSpotify()
+    return
+  }
+
+  spotifyProfile = profile
   spotifyTrack = await getCurrentlyPlaying(token)
 }
 
@@ -89,31 +113,62 @@ function drawScreen(profile, track) {
   screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height)
 
   screenCtx.fillStyle = 'black'
-  screenCtx.font = 'bold 28px Arial'
+  screenCtx.font = 'bold 52px Arial'
   screenCtx.textAlign = 'center'
-  screenCtx.fillText('Now Playing', screenCanvas.width / 2, 50)
+  screenCtx.fillText('Now Playing', screenCanvas.width / 2, 100)
+
+  if (profile && profile.images && profile.images[0]) {
+    const profileUrl = profile.images[0].url
+    if (cachedProfilePic) {
+      screenCtx.save()
+      screenCtx.beginPath()
+      screenCtx.arc(120, 120, 80, 0, Math.PI * 2)
+      screenCtx.closePath()
+      screenCtx.clip()
+      screenCtx.drawImage(cachedProfilePic, 40, 40, 160, 160)
+      screenCtx.restore()
+    }
+    if (profileUrl !== cachedProfileUrl) {
+      cachedProfileUrl = profileUrl
+      cachedProfilePic = null
+      const profileImg = new Image()
+      profileImg.crossOrigin = 'anonymous'
+      profileImg.src = profileUrl
+      profileImg.onload = () => { cachedProfilePic = profileImg }
+    }
+  }
 
   if (profile) {
-    screenCtx.font = '22px Arial'
-    screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 90)
+    screenCtx.font = '40px Arial'
+    screenCtx.textAlign = 'center'
+    screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 180)
   }
 
   if (track && track.item) {
     const song = track.item.name
     const artist = track.item.artists[0].name
+    const albumUrl = track.item.album.images[0].url
 
-    screenCtx.font = 'bold 26px Arial'
-    screenCtx.fillText(song, screenCanvas.width / 2, 380)
-
-    screenCtx.font = '22px Arial'
-    screenCtx.fillText(artist, screenCanvas.width / 2, 420)
-
-    const albumArt = new Image()
-    albumArt.src = track.item.album.images[0].url
-    albumArt.onload = () => {
-      screenCtx.drawImage(albumArt, 156, 130, 200, 200)
-      screenTexture.needsUpdate = true
+    if (cachedAlbumArt) {
+      screenCtx.drawImage(cachedAlbumArt, 312, 220, 400, 400)
     }
+
+    if (albumUrl !== cachedAlbumUrl) {
+      cachedAlbumUrl = albumUrl
+      cachedAlbumArt = null
+      const albumArt = new Image()
+      albumArt.crossOrigin = 'anonymous'
+      albumArt.src = albumUrl
+      albumArt.onload = () => { cachedAlbumArt = albumArt }
+    }
+
+    screenCtx.fillStyle = 'black'
+    screenCtx.font = 'bold 48px Arial'
+    screenCtx.textAlign = 'center'
+    screenCtx.fillText(song, screenCanvas.width / 2, 700)
+
+    screenCtx.font = '40px Arial'
+    screenCtx.fillText(artist, screenCanvas.width / 2, 760)
   }
 
   screenTexture.needsUpdate = true
