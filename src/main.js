@@ -14,6 +14,7 @@ const meshes = {}
 const lights = {}
 
 let composer
+let screenCanvas, screenCtx, screenTexture //canvas shit wooooo
 
 init()
 function init() {
@@ -56,6 +57,7 @@ function resize (){
     //   model.traverse((child) => {
     //     if (child.isMesh && child.name === 'Object_7') {
     //       child.material = new THREE.MeshStandardMaterial({ color: 0xff0000 }) 
+
 function instances(){
   const ipod = new Model({
     url: './ipod_classic.glb',
@@ -77,18 +79,27 @@ function instances(){
       ctx.fillText('Hello iPod!', 100, 100)
 
       const canvasTexture = new THREE.CanvasTexture(canvas)
+      canvasTexture.center.set(0.5, 0.5)      // ← added here
+      canvasTexture.rotation = Math.PI / 2    // ← added here
 
       model.traverse((child) => {
         if (child.isMesh && child.name === 'Object_7') {
           child.material = new THREE.MeshStandardMaterial({ map: canvasTexture })
         }
+        //hell yeah we making canvases again brother 
+        screenCanvas = document.createElement('canvas')
+        screenCanvas.width = 512
+        screenCanvas.height = 512
+        screenCtx = screenCanvas.getContext('2d')
+        screenTexture = new THREE.CanvasTexture(screenCanvas)
+
       })
     }
   })
   ipod.init()
 }
 
-
+//test for push
 //ROOOOOTATIONS
 function animate(){
   requestAnimationFrame(animate)
