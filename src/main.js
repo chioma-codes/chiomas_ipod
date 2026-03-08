@@ -19,8 +19,9 @@ let cachedAlbumArt = null
 let cachedAlbumUrl = null
 let cachedProfilePic = null
 let cachedProfileUrl = null
+let songScrollX = 0
+let artistScrollX = 0
 
-// handle spotify auth
 const params = new URLSearchParams(window.location.search)
 const code = params.get('code')
 
@@ -106,17 +107,34 @@ async function fetchSpotifyData() {
   spotifyTrack = await getCurrentlyPlaying(token)
 }
 
+function drawScrollingText(text, y, scrollX, maxWidth) {
+  screenCtx.save()
+  screenCtx.beginPath()
+  screenCtx.rect(0, y - 60, screenCanvas.width, 70)
+  screenCtx.clip()
+  
+  const textWidth = screenCtx.measureText(text).width
+  if (textWidth > maxWidth) {
+    screenCtx.fillText(text, screenCanvas.width / 2 - scrollX, y)
+  } else {
+    screenCtx.fillText(text, screenCanvas.width / 2, y)
+  }
+  screenCtx.restore()
+}
+
 function drawScreen(profile, track) {
   if (!screenCtx) return
 
   screenCtx.fillStyle = 'white'
   screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height)
 
+  // now playing header
   screenCtx.fillStyle = 'black'
   screenCtx.font = 'bold 52px Arial'
   screenCtx.textAlign = 'center'
   screenCtx.fillText('Now Playing', screenCanvas.width / 2, 100)
 
+  // profile picture
   if (profile && profile.images && profile.images[0]) {
     const profileUrl = profile.images[0].url
     if (cachedProfilePic) {
@@ -138,19 +156,22 @@ function drawScreen(profile, track) {
     }
   }
 
+  // profile name
   if (profile) {
-    screenCtx.font = '40px Arial'
+    screenCtx.font = '50px Arial'
     screenCtx.textAlign = 'center'
     screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 180)
   }
 
+  // track info
   if (track && track.item) {
     const song = track.item.name
     const artist = track.item.artists[0].name
     const albumUrl = track.item.album.images[0].url
 
+    // album art
     if (cachedAlbumArt) {
-      screenCtx.drawImage(cachedAlbumArt, 312, 220, 400, 400)
+      screenCtx.drawImage(cachedAlbumArt, 270, 220, 490, 490)
     }
 
     if (albumUrl !== cachedAlbumUrl) {
@@ -162,13 +183,14 @@ function drawScreen(profile, track) {
       albumArt.onload = () => { cachedAlbumArt = albumArt }
     }
 
+    // song name with scrolling
     screenCtx.fillStyle = 'black'
-    screenCtx.font = 'bold 48px Arial'
-    screenCtx.textAlign = 'center'
-    screenCtx.fillText(song, screenCanvas.width / 2, 700)
+    screenCtx.font = 'bold 60px Arial'
+    drawScrollingText(song, 840, songScrollX, 900)
 
-    screenCtx.font = '40px Arial'
-    screenCtx.fillText(artist, screenCanvas.width / 2, 760)
+    // artist name with scrolling
+    screenCtx.font = '50px Arial'
+    drawScrollingText(artist, 930, artistScrollX, 900)
   }
 
   screenTexture.needsUpdate = true
@@ -177,8 +199,15 @@ function drawScreen(profile, track) {
 function animate(){
   requestAnimationFrame(animate)
   if (meshes.ipod) {
-    meshes.ipod.rotation.y += 0.01
+    meshes.ipod.rotation.y += 0.005
   }
+
+  songScrollX += 1
+  if (songScrollX > 600) songScrollX = 0
+
+  artistScrollX += 1
+  if (artistScrollX > 600) artistScrollX = 0
+
   drawScreen(spotifyProfile, spotifyTrack)
   renderer.render(scene, camera)
 }
