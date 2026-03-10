@@ -71,3 +71,10 @@ export async function getProfile(token) {
   })
   return await result.json()
 }
+export async function getArtistGenres(token, artistId) {
+  const result = await fetch(`https://api.spotify.com/v1/artists/${artistId}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  return await result.json()
+}
