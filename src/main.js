@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import {addDefaultMeshes, addStandardMeshes } from './addDefaultMeshes.js'
 import { addLight } from '../addLight.js';
 import Model from './model.js'
-import { redirectToSpotify, getAccessToken, getCurrentlyPlaying, getProfile } from './spotify.js'
+import { redirectToSpotify, getAccessToken, getCurrentlyPlaying, getProfile, getArtistGenres } from './spotify.js' //added genre 
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100)
@@ -19,8 +19,10 @@ let cachedAlbumArt = null
 let cachedAlbumUrl = null
 let cachedProfilePic = null
 let cachedProfileUrl = null
+let spotifyGenres = null
 let songScrollX = 0
 let artistScrollX = 0
+
 
 const params = new URLSearchParams(window.location.search)
 const code = params.get('code')
@@ -57,7 +59,9 @@ function init() {
   instances()
   fetchSpotifyData()
   setInterval(fetchSpotifyData, 5000)
+  updateInfoBox()
   animate()
+  
 }
 
 function instances(){
@@ -85,8 +89,23 @@ function instances(){
     }
   })
   ipod.init()
-}
+} 
+ function updateInfoBox(profile, track, genres) {
+  if (!track || !track.item) return
 
+  const song = track.item.name
+  const artist = track.item.artists[0].name
+  const album = track.item.album.name
+  const albumArt = track.item.album.images[0].url
+  const genre = genres && genres.length > 0 ? genres[0] : 'Music Chi Likes' // shit was never pulling any data from the array I set up for the spotify data and simply my brain isn't going to figure out why 
+
+  document.getElementById('info-song').textContent = song
+  document.getElementById('info-artist').textContent = artist
+  document.getElementById('info-album').textContent = album
+  document.getElementById('info-genre').textContent = genre
+  document.getElementById('info-album-art').src = albumArt 
+ }
+ 
 async function fetchSpotifyData() {
   const token = localStorage.getItem('token')
   if (!token || token === 'undefined') {
@@ -105,6 +124,15 @@ async function fetchSpotifyData() {
 
   spotifyProfile = profile
   spotifyTrack = await getCurrentlyPlaying(token)
+
+  if (spotifyTrack && spotifyTrack.item){
+    const artistId = spotifyTrack.item.artists[0].id
+    const artistData = await getArtistGenres(token, artistId)
+    spotifyGenres = artistData.genres
+  }
+
+  updateInfoBox(spotifyProfile, spotifyTrack, spotifyGenres)
+  
 }
 
 function drawScrollingText(text, y, scrollX, maxWidth) {
@@ -128,7 +156,7 @@ function drawScreen(profile, track) {
   screenCtx.fillStyle = 'white'
   screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height)
 
-  // now playing header
+  // now playing
   screenCtx.fillStyle = 'black'
   screenCtx.font = 'bold 52px Arial'
   screenCtx.textAlign = 'center'
@@ -156,20 +184,20 @@ function drawScreen(profile, track) {
     }
   }
 
-  // profile name
-  if (profile) {
-    screenCtx.font = '50px Arial'
-    screenCtx.textAlign = 'center'
-    screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 180)
-  }
+  // // profile name
+  // if (profile) {
+  //   screenCtx.font = '50px Arial'
+  //   screenCtx.textAlign = 'center'
+  //   screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 180)
+  // }
 
-  // track info
+  // song
   if (track && track.item) {
     const song = track.item.name
     const artist = track.item.artists[0].name
     const albumUrl = track.item.album.images[0].url
 
-    // album art
+    // album artwork
     if (cachedAlbumArt) {
       screenCtx.drawImage(cachedAlbumArt, 270, 220, 490, 490)
     }
@@ -191,7 +219,9 @@ function drawScreen(profile, track) {
     // artist name with scrolling
     screenCtx.font = '50px Arial'
     drawScrollingText(artist, 930, artistScrollX, 900)
+
   }
+
 
   screenTexture.needsUpdate = true
 }
