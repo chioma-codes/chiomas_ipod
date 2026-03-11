@@ -26,25 +26,36 @@ export default async function handler(req, res) {
     })
 
     if (response.status === 204) {
-      const recentResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      })
-
-      const recentData = await recentResponse.json()
-      const lastTrack = recentData.items?.[0]?.track
-
-      if (!lastTrack) {
-        return res.json({ isPlaying: false })
-      }
-
-      return res.json({
-        isPlaying: false,
-        song: lastTrack.name,
-        artist: lastTrack.artists[0].name,
-        album: lastTrack.album.name,
-        albumArt: lastTrack.album.images[0].url
-      })
+  if (response.status === 204) {
+  const recentResponse = await fetch(
+    'https://api.spotify.com/v1/me/player/recently-played?limit=1',
+    {
+      headers: { Authorization: `Bearer ${accessToken}` }
     }
+  )
+
+  const recentData = await recentResponse.json()
+
+  const lastTrack = recentData?.items?.[0]?.track
+
+  if (!lastTrack) {
+    return res.json({
+      isPlaying: false,
+      song: "Nothing recently played",
+      artist: "",
+      album: "",
+      albumArt: ""
+    })
+  }
+
+  return res.json({
+    isPlaying: false,
+    song: lastTrack.name,
+    artist: lastTrack.artists[0].name,
+    album: lastTrack.album.name,
+    albumArt: lastTrack.album.images[0].url
+  })
+}
 
     const data = await response.json()
 
