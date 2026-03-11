@@ -1,7 +1,24 @@
 import fetch from 'node-fetch'
 
+// Module-level cache
+let lastTrackCache = {
+  isPlaying: false,
+  song: "Nothing recently played",
+  artist: "",
+  album: "",
+  albumArt: "/fallback.png",
+  playedAgo: null
+}
+let lastFetchTime = 0
+const CACHE_DURATION = 7000 // 7 seconds
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
+
+  // Serve cached response if fresh
+  if (Date.now() - lastFetchTime < CACHE_DURATION) {
+    return res.json(lastTrackCache)
+  }
 
   try {
     const clientId = process.env.SPOTIFY_CLIENT_ID
@@ -21,6 +38,11 @@ export default async function handler(req, res) {
       })
     })
 
+    if (!tokenResponse.ok) {
+      const text = await tokenResponse.text()
+      return res.status(tokenResponse.status).json({ error: text })
+    }
+
     const tokenData = await tokenResponse.json()
     const accessToken = tokenData.access_token
 
@@ -29,42 +51,58 @@ export default async function handler(req, res) {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
 
-    if (response.status === 204) {
-      // Spotify is paused or nothing is playing
+    let trackData = null
+
+    if (response.ok && response.status === 200) {
+      const data = await response.json()
+      if (data?.item) {
+        trackData = {
+          isPlaying: true,
+          song: data.item.name,
+          artist: data.item.artists[0].name,
+          album: data.item.album.name,
+          albumArt: data.item.album.images[0].url,
+          playedAgo: 0
+        }
+      }
+    }
+
+    // If nothing is playing or Spotify paused, get last played
+    if (!trackData) {
       const recentResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
-      const recentData = await recentResponse.json()
-      const lastTrack = recentData?.items?.[0]?.track
 
-      if (!lastTrack) {
-        return res.json({
-          isPlaying: false,
-          song: "Nothing recently played",
-          artist: "",
-          album: "",
-          albumArt: ""
-        })
+      if (recentResponse.ok) {
+        const recentData = await recentResponse.json()
+        const lastTrack = recentData?.items?.[0]?.track
+        const playedAt = recentData?.items?.[0]?.played_at
+
+        if (lastTrack) {
+          const playedAgo = Math.floor((Date.now() - new Date(playedAt).getTime()) / 60000)
+          trackData = {
+            isPlaying: false,
+            song: lastTrack.name,
+            artist: lastTrack.artists[0].name,
+            album: lastTrack.album.name,
+            albumArt: lastTrack.album.images[0].url,
+            playedAgo
+          }
+        }
       }
-
-      return res.json({
-        isPlaying: false,
-        song: lastTrack.name,
-        artist: lastTrack.artists[0].name,
-        album: lastTrack.album.name,
-        albumArt: lastTrack.album.images[0].url
-      })
     }
 
-    const data = await response.json()
+    // Fallback to cache if nothing
+    if (!trackData) {
+      trackData = lastTrackCache
+    }
 
-    return res.json({
-      isPlaying: true,
-      song: data.item.name,
-      artist: data.item.artists[0].name,
-      album: data.item.album.name,
-      albumArt: data.item.album.images[0].url
-    })
+    // Update cache
+    lastTrackCache = trackData
+    lastFetchTime = Date.now()
+
+    return res.json(trackData)
+
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }

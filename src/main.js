@@ -39,7 +39,7 @@ function init() {
 
   instances()
   fetchSpotifyData()
-  setInterval(fetchSpotifyData, 4000)
+  setInterval(fetchSpotifyData, 3000)
   animate()
 }
 
