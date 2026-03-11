@@ -78,8 +78,10 @@ function updateInfoBox(track) {
   const albumArt = track.item.album.images[0].url
 
   document.getElementById('main-title').textContent = track.isPlaying 
-    ? "Now playing in Chioma's Ears 🎵" 
-    : "Chioma is offline! But here's her latest listen 🎧"
+ ? "Currently Playing in Chioma's Ears" 
+: "Chi's Offline! But here's her latest listen 🎧"
+
+//wtf
 
   document.getElementById('info-song').textContent = song
   document.getElementById('info-artist').textContent = artist
@@ -89,7 +91,7 @@ function updateInfoBox(track) {
 }
 
 async function fetchSpotifyData() {
-  const response = await fetch('/.netlify/functions/now-playing')
+  const response = await fetch('/api/now-playing')
   const data = await response.json()
 
   spotifyTrack = {
