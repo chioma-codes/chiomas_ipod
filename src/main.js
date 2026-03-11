@@ -101,7 +101,7 @@ async function fetchSpotifyData() {
 
   //spotify embed
   const embed = document.getElementById('spotify-embed')
-  embed.src = `https://open.spotify.com/embed/track/${data.trackId}?utm_source=generator&theme=0`
+embed.src = `https://open.spotify.com/embed/track/${data.trackId}?utm_source=generator&theme=0&compact=1`
 
   updateInfoBox(spotifyTrack)
 }
