@@ -22,7 +22,8 @@ body {
   font-family: Arial, sans-serif;
   font-size: 14px;
   margin: 0 0 12px 0;
-  text-align: left;
+  text-align: center;
+  white-space: pre-line;
 }
 
 #info-box {
