@@ -22,7 +22,7 @@ body {
   font-family: Arial, sans-serif;
   font-size: 14px;
   margin: 0 0 12px 0;
-  text-align: center;
+  text-align: left;
 }
 
 #info-box {
@@ -49,8 +49,8 @@ body {
 }
 
 #info-album-art {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
