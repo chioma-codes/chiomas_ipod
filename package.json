@@ -12,6 +12,21 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "express": "^5.2.1",
+    "node-fetch": "^3.3.2",
     "three": "^0.182.0"
-  }
+  },
+  "description": "",
+  "main": "addLight.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chioma-codes/chiomas_ipod.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chioma-codes/chiomas_ipod/issues"
+  },
+  "homepage": "https://github.com/chioma-codes/chiomas_ipod#readme"
 }

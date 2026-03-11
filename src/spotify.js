@@ -26,7 +26,7 @@ export async function redirectToSpotify() {
   params.append('client_id', clientId)
   params.append('response_type', 'code')
   params.append('redirect_uri', redirectUri)
-  params.append('scope', 'user-read-private user-read-currently-playing user-read-playback-state')
+params.append('scope', 'user-read-private user-read-currently-playing user-read-playback-state streaming user-modify-playback-state') // adds the streaming function
   params.append('code_challenge_method', 'S256')
   params.append('code_challenge', challenge)
 

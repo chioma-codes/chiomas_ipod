@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import {addDefaultMeshes, addStandardMeshes } from './addDefaultMeshes.js'
 import { addLight } from '../addLight.js';
 import Model from './model.js'
-import { redirectToSpotify, getAccessToken, getCurrentlyPlaying, getProfile, getArtistGenres } from './spotify.js' //added genre 
+import { redirectToSpotify, getAccessToken, getCurrentlyPlaying, getProfile, getArtistGenres } from './spotify.js'
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100)
@@ -22,7 +22,6 @@ let cachedProfileUrl = null
 let spotifyGenres = null
 let songScrollX = 0
 let artistScrollX = 0
-
 
 const params = new URLSearchParams(window.location.search)
 const code = params.get('code')
@@ -45,6 +44,44 @@ if (!code) {
   init()
 }
 
+function setupPlayer(token) {
+  window.onSpotifyWebPlaybackSDKReady = () => {
+    const player = new Spotify.Player({
+      name: 'Chioma iPod',
+      getOAuthToken: cb => cb(token),
+      volume: 0.5,
+      enableMediaSession: true
+    })
+
+    player.addListener('ready', ({ device_id }) => {
+      console.log('Player ready with device ID', device_id)
+      const freshToken = localStorage.getItem('token')
+      transferPlayback(device_id, freshToken)
+    })
+
+    player.addListener('not_ready', ({ device_id }) => {
+      console.log('Device has gone offline', device_id)
+    })
+
+    player.connect()
+  }
+}
+
+async function transferPlayback(device_id, token) {
+  console.log('transferring with token:', token)
+  const response = await fetch('https://api.spotify.com/v1/me/player', {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ device_ids: [device_id], play: true })
+  })
+  console.log('transfer response status:', response.status)
+  const text = await response.text()
+  console.log('transfer response body:', text)
+}
+
 function init() {
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
@@ -59,9 +96,8 @@ function init() {
   instances()
   fetchSpotifyData()
   setInterval(fetchSpotifyData, 5000)
-  updateInfoBox()
   animate()
-  
+  setupPlayer(localStorage.getItem('token'))
 }
 
 function instances(){
@@ -89,23 +125,24 @@ function instances(){
     }
   })
   ipod.init()
-} 
- function updateInfoBox(profile, track, genres) {
+}
+
+function updateInfoBox(profile, track, genres) {
   if (!track || !track.item) return
 
   const song = track.item.name
   const artist = track.item.artists[0].name
   const album = track.item.album.name
   const albumArt = track.item.album.images[0].url
-  const genre = genres && genres.length > 0 ? genres[0] : 'Music Chi Likes' // shit was never pulling any data from the array I set up for the spotify data and simply my brain isn't going to figure out why 
+  const genre = genres && genres.length > 0 ? genres[0] : 'Music Chi Likes'
 
   document.getElementById('info-song').textContent = song
   document.getElementById('info-artist').textContent = artist
   document.getElementById('info-album').textContent = album
   document.getElementById('info-genre').textContent = genre
-  document.getElementById('info-album-art').src = albumArt 
- }
- 
+  document.getElementById('info-album-art').src = albumArt
+}
+
 async function fetchSpotifyData() {
   const token = localStorage.getItem('token')
   if (!token || token === 'undefined') {
@@ -125,14 +162,13 @@ async function fetchSpotifyData() {
   spotifyProfile = profile
   spotifyTrack = await getCurrentlyPlaying(token)
 
-  if (spotifyTrack && spotifyTrack.item){
+  if (spotifyTrack && spotifyTrack.item) {
     const artistId = spotifyTrack.item.artists[0].id
     const artistData = await getArtistGenres(token, artistId)
     spotifyGenres = artistData.genres
   }
 
   updateInfoBox(spotifyProfile, spotifyTrack, spotifyGenres)
-  
 }
 
 function drawScrollingText(text, y, scrollX, maxWidth) {
@@ -156,13 +192,11 @@ function drawScreen(profile, track) {
   screenCtx.fillStyle = 'white'
   screenCtx.fillRect(0, 0, screenCanvas.width, screenCanvas.height)
 
-  // now playing
   screenCtx.fillStyle = 'black'
   screenCtx.font = 'bold 52px Arial'
   screenCtx.textAlign = 'center'
   screenCtx.fillText('Now Playing', screenCanvas.width / 2, 100)
 
-  // profile picture
   if (profile && profile.images && profile.images[0]) {
     const profileUrl = profile.images[0].url
     if (cachedProfilePic) {
@@ -184,20 +218,11 @@ function drawScreen(profile, track) {
     }
   }
 
-  // // profile name
-  // if (profile) {
-  //   screenCtx.font = '50px Arial'
-  //   screenCtx.textAlign = 'center'
-  //   screenCtx.fillText(profile.display_name, screenCanvas.width / 2, 180)
-  // }
-
-  // song
   if (track && track.item) {
     const song = track.item.name
     const artist = track.item.artists[0].name
     const albumUrl = track.item.album.images[0].url
 
-    // album artwork
     if (cachedAlbumArt) {
       screenCtx.drawImage(cachedAlbumArt, 270, 220, 490, 490)
     }
@@ -211,17 +236,13 @@ function drawScreen(profile, track) {
       albumArt.onload = () => { cachedAlbumArt = albumArt }
     }
 
-    // song name with scrolling
     screenCtx.fillStyle = 'black'
     screenCtx.font = 'bold 60px Arial'
     drawScrollingText(song, 840, songScrollX, 900)
 
-    // artist name with scrolling
     screenCtx.font = '50px Arial'
     drawScrollingText(artist, 930, artistScrollX, 900)
-
   }
-
 
   screenTexture.needsUpdate = true
 }
