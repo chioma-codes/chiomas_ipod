@@ -77,6 +77,10 @@ function updateInfoBox(track) {
   const album = track.item.album.name
   const albumArt = track.item.album.images[0].url
 
+  document.getElementById('main-title').textContent = track.isPlaying 
+    ? "Now playing in Chioma's Ears 🎵" 
+    : "Chioma is offline! But here's her latest listen 🎧"
+
   document.getElementById('info-song').textContent = song
   document.getElementById('info-artist').textContent = artist
   document.getElementById('info-album').textContent = album
@@ -89,6 +93,7 @@ async function fetchSpotifyData() {
   const data = await response.json()
 
   spotifyTrack = {
+    isPlaying: data.isPlaying,
     item: {
       name: data.song,
       artists: [{ name: data.artist }],
