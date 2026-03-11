@@ -25,8 +25,8 @@ export default async function handler(req, res) {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
 
-    if (response.status === 204) {
-  if (response.status === 204) {
+   if (response.status === 204) {
+
   const recentResponse = await fetch(
     'https://api.spotify.com/v1/me/player/recently-played?limit=1',
     {
@@ -35,7 +35,6 @@ export default async function handler(req, res) {
   )
 
   const recentData = await recentResponse.json()
-
   const lastTrack = recentData?.items?.[0]?.track
 
   if (!lastTrack) {
