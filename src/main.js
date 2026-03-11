@@ -1,9 +1,7 @@
 import './style.css'
 import * as THREE from 'three' 
-import {addDefaultMeshes, addStandardMeshes } from './addDefaultMeshes.js'
 import { addLight } from '../addLight.js';
 import Model from './model.js'
-import { redirectToSpotify, getAccessToken, getCurrentlyPlaying, getProfile, getArtistGenres } from './spotify.js'
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100)
@@ -13,74 +11,13 @@ const meshes = {}
 const lights = {}
 
 let screenCanvas, screenCtx, screenTexture
-let spotifyProfile = null
 let spotifyTrack = null
 let cachedAlbumArt = null
 let cachedAlbumUrl = null
-let cachedProfilePic = null
-let cachedProfileUrl = null
-let spotifyGenres = null
 let songScrollX = 0
 let artistScrollX = 0
 
-const params = new URLSearchParams(window.location.search)
-const code = params.get('code')
-
-if (!code) {
-  const existingToken = localStorage.getItem('token')
-  if (!existingToken || existingToken === 'undefined') {
-    redirectToSpotify()
-  } else {
-    init()
-  }
-} else {
-  const existingToken = localStorage.getItem('token')
-  if (!existingToken || existingToken === 'undefined') {
-    const newToken = await getAccessToken(code)
-    console.log('token received:', newToken)
-    localStorage.setItem('token', newToken)
-  }
-  window.history.replaceState({}, document.title, '/')
-  init()
-}
-
-function setupPlayer(token) {
-  window.onSpotifyWebPlaybackSDKReady = () => {
-    const player = new Spotify.Player({
-      name: 'Chioma iPod',
-      getOAuthToken: cb => cb(token),
-      volume: 0.5,
-      enableMediaSession: true
-    })
-
-    player.addListener('ready', ({ device_id }) => {
-      console.log('Player ready with device ID', device_id)
-      const freshToken = localStorage.getItem('token')
-      transferPlayback(device_id, freshToken)
-    })
-
-    player.addListener('not_ready', ({ device_id }) => {
-      console.log('Device has gone offline', device_id)
-    })
-
-    player.connect()
-  }
-}
-
-async function transferPlayback(device_id, token) {
-  console.log('transferring with token:', token)
-  const response = await fetch('https://api.spotify.com/v1/me/player', {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ device_ids: [device_id], play: true })
-  })
-  console.log('transfer response status:', response.status)
-  const text = await response.text()
-  console.log('transfer response body:', text)
-}
+init()
 
 function init() {
   renderer.setSize(window.innerWidth, window.innerHeight)
@@ -97,7 +34,6 @@ function init() {
   fetchSpotifyData()
   setInterval(fetchSpotifyData, 5000)
   animate()
-  setupPlayer(localStorage.getItem('token'))
 }
 
 function instances(){
@@ -127,19 +63,18 @@ function instances(){
   ipod.init()
 }
 
-function updateInfoBox(profile, track, genres) {
+function updateInfoBox(track) {
   if (!track || !track.item) return
 
   const song = track.item.name
   const artist = track.item.artists[0].name
   const album = track.item.album.name
   const albumArt = track.item.album.images[0].url
-  const genre = genres && genres.length > 0 ? genres[0] : 'Music Chi Likes'
 
   document.getElementById('info-song').textContent = song
   document.getElementById('info-artist').textContent = artist
   document.getElementById('info-album').textContent = album
-  document.getElementById('info-genre').textContent = genre
+  document.getElementById('info-genre').textContent = 'Music Chi Likes'
   document.getElementById('info-album-art').src = albumArt
 }
 
@@ -158,7 +93,7 @@ async function fetchSpotifyData() {
     }
   }
 
-  updateInfoBox(null, spotifyTrack, null)
+  updateInfoBox(spotifyTrack)
 }
 
 function drawScrollingText(text, y, scrollX, maxWidth) {
@@ -176,7 +111,7 @@ function drawScrollingText(text, y, scrollX, maxWidth) {
   screenCtx.restore()
 }
 
-function drawScreen(profile, track) {
+function drawScreen(track) {
   if (!screenCtx) return
 
   screenCtx.fillStyle = 'white'
@@ -186,27 +121,6 @@ function drawScreen(profile, track) {
   screenCtx.font = 'bold 52px Arial'
   screenCtx.textAlign = 'center'
   screenCtx.fillText('Now Playing', screenCanvas.width / 2, 100)
-
-  if (profile && profile.images && profile.images[0]) {
-    const profileUrl = profile.images[0].url
-    if (cachedProfilePic) {
-      screenCtx.save()
-      screenCtx.beginPath()
-      screenCtx.arc(120, 120, 80, 0, Math.PI * 2)
-      screenCtx.closePath()
-      screenCtx.clip()
-      screenCtx.drawImage(cachedProfilePic, 40, 40, 160, 160)
-      screenCtx.restore()
-    }
-    if (profileUrl !== cachedProfileUrl) {
-      cachedProfileUrl = profileUrl
-      cachedProfilePic = null
-      const profileImg = new Image()
-      profileImg.crossOrigin = 'anonymous'
-      profileImg.src = profileUrl
-      profileImg.onload = () => { cachedProfilePic = profileImg }
-    }
-  }
 
   if (track && track.item) {
     const song = track.item.name
@@ -249,6 +163,6 @@ function animate(){
   artistScrollX += 1
   if (artistScrollX > 600) artistScrollX = 0
 
-  drawScreen(spotifyProfile, spotifyTrack)
+  drawScreen(spotifyTrack)
   renderer.render(scene, camera)
 }
