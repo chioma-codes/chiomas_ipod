@@ -31,27 +31,29 @@ export async function handler(event, context) {
     })
     const recentData = await recentResponse.json()
     const lastTrack = recentData.items[0].track
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        isPlaying: false,
-        song: lastTrack.name,
-        artist: lastTrack.artists[0].name,
-        album: lastTrack.album.name,
-        albumArt: lastTrack.album.images[0].url
-      })
-    }
+return {
+  statusCode: 200,
+  body: JSON.stringify({
+    isPlaying: false,
+    song: lastTrack.name,
+    artist: lastTrack.artists[0].name,
+    album: lastTrack.album.name,
+    albumArt: lastTrack.album.images[0].url,
+    trackId: lastTrack.id
+  })
+}
   }
 
   const data = await response.json()
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      isPlaying: true,
-      song: data.item.name,
-      artist: data.item.artists[0].name,
-      album: data.item.album.name,
-      albumArt: data.item.album.images[0].url
-    })
-  }
+return {
+  statusCode: 200,
+  body: JSON.stringify({
+    isPlaying: true,
+    song: data.item.name,
+    artist: data.item.artists[0].name,
+    album: data.item.album.name,
+    albumArt: data.item.album.images[0].url,
+    trackId: data.item.id
+  })
+}
 }

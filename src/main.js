@@ -19,6 +19,12 @@ let artistScrollX = 0
 
 init()
 
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(window.innerWidth, window.innerHeight)
+})
+
 function init() {
   renderer.setSize(window.innerWidth, window.innerHeight)
   document.body.appendChild(renderer.domElement)
@@ -92,6 +98,10 @@ async function fetchSpotifyData() {
       }
     }
   }
+
+  //spotify embed
+  const embed = document.getElementById('spotify-embed')
+  embed.src = `https://open.spotify.com/embed/track/${data.trackId}?utm_source=generator&theme=0`
 
   updateInfoBox(spotifyTrack)
 }
