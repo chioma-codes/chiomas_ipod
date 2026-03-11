@@ -144,31 +144,21 @@ function updateInfoBox(profile, track, genres) {
 }
 
 async function fetchSpotifyData() {
-  const token = localStorage.getItem('token')
-  if (!token || token === 'undefined') {
-    localStorage.clear()
-    redirectToSpotify()
-    return
+  const response = await fetch('/.netlify/functions/now-playing')
+  const data = await response.json()
+
+  spotifyTrack = {
+    item: {
+      name: data.song,
+      artists: [{ name: data.artist }],
+      album: {
+        name: data.album,
+        images: [{ url: data.albumArt }]
+      }
+    }
   }
 
-  const profile = await getProfile(token)
-
-  if (profile.error && profile.error.status === 401) {
-    localStorage.clear()
-    redirectToSpotify()
-    return
-  }
-
-  spotifyProfile = profile
-  spotifyTrack = await getCurrentlyPlaying(token)
-
-  if (spotifyTrack && spotifyTrack.item) {
-    const artistId = spotifyTrack.item.artists[0].id
-    const artistData = await getArtistGenres(token, artistId)
-    spotifyGenres = artistData.genres
-  }
-
-  updateInfoBox(spotifyProfile, spotifyTrack, spotifyGenres)
+  updateInfoBox(null, spotifyTrack, null)
 }
 
 function drawScrollingText(text, y, scrollX, maxWidth) {
