@@ -17,7 +17,6 @@ let cachedAlbumUrl = null
 let songScrollX = 0
 let artistScrollX = 0
 
-
 init()
 
 window.addEventListener('resize', () => {
@@ -39,7 +38,16 @@ function init() {
 
   instances()
   fetchSpotifyData()
-  setInterval(fetchSpotifyData, 3000)
+  setInterval(fetchSpotifyData, 7000) // Poll Spotify every 7s
+
+  // Increment "played X mins ago" every minute if offline
+  setInterval(() => {
+    if (spotifyTrack && !spotifyTrack.isPlaying) {
+      spotifyTrack.playedAgo = (spotifyTrack.playedAgo ?? 0) + 1
+      updateInfoBox(spotifyTrack)
+    }
+  }, 60000) // 1 minute
+
   animate()
 }
 
@@ -70,6 +78,30 @@ function instances(){
   ipod.init()
 }
 
+async function fetchSpotifyData() {
+  try {
+    const response = await fetch('/api/now_playing')
+    const data = await response.json()
+
+    spotifyTrack = {
+      isPlaying: data.isPlaying,
+      playedAgo: data.playedAgo ?? 0,
+      item: {
+        name: data.song,
+        artists: [{ name: data.artist }],
+        album: {
+          name: data.album,
+          images: [{ url: data.albumArt }]
+        }
+      }
+    }
+
+    updateInfoBox(spotifyTrack)
+  } catch (err) {
+    console.error("Spotify fetch error:", err)
+  }
+}
+
 function updateInfoBox(track) {
   if (!track || !track.item) return
 
@@ -78,36 +110,20 @@ function updateInfoBox(track) {
   const album = track.item.album.name
   const albumArt = track.item.album.images[0].url
 
-  document.getElementById('main-title').textContent = track.isPlaying 
- ? "Currently Playing in Chioma's Ears" 
-: "Chi's Offline! But here's her latest listen 🎧"
-
-//wtf
+  // Update title based on playing status
+  if (track.isPlaying) {
+    document.getElementById('main-title').textContent = "Currently Playing in Chioma's Ears"
+  } else {
+    const minutesAgo = track.playedAgo ?? 0
+    document.getElementById('main-title').textContent = 
+      `Chi's Offline! Last played ${minutesAgo} min${minutesAgo === 1 ? '' : 's'} ago 🎧`
+  }
 
   document.getElementById('info-song').textContent = song
   document.getElementById('info-artist').textContent = artist
   document.getElementById('info-album').textContent = album
   document.getElementById('info-genre').textContent = 'Music Chi Likes'
   document.getElementById('info-album-art').src = albumArt
-}
-
-async function fetchSpotifyData() {
-  const response = await fetch('/api/now_playing')
-  const data = await response.json()
-
-  spotifyTrack = {
-    isPlaying: data.isPlaying,
-    item: {
-      name: data.song,
-      artists: [{ name: data.artist }],
-      album: {
-        name: data.album,
-        images: [{ url: data.albumArt }]
-      }
-    }
-  }
-
-  updateInfoBox(spotifyTrack)
 }
 
 function drawScrollingText(text, y, scrollX, maxWidth) {
