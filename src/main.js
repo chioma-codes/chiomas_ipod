@@ -38,7 +38,7 @@ function init() {
 
   instances()
   fetchSpotifyData()
-  setInterval(fetchSpotifyData, 3000)
+  setInterval(fetchSpotifyData, 5000)
   animate()
 }
 
@@ -91,7 +91,7 @@ function updateInfoBox(track) {
 }
 
 async function fetchSpotifyData() {
-  const response = await fetch('/api/now-playing')
+  const response = await fetch('/api/now_playing')
   const data = await response.json()
 
   spotifyTrack = {
