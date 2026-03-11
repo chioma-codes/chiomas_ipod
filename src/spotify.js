@@ -15,7 +15,7 @@ async function generateCodeChallenge(codeVerifier) {
 }
 
 const clientId = '0d5fc0bd21a24f78a0674c6c816804b3'//basically like a username for my app so spotify is like hey this is the app making
-const redirectUri = 'http://127.0.0.1:5173/callback'
+const redirectUri = 'https://chiomas-ipod.vercel.app/callback'
 
 export async function redirectToSpotify() {
   const verifier = generateCodeVerifier(128)
