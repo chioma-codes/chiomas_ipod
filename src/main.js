@@ -17,6 +17,7 @@ let cachedAlbumUrl = null
 let songScrollX = 0
 let artistScrollX = 0
 
+
 init()
 
 window.addEventListener('resize', () => {
@@ -38,7 +39,7 @@ function init() {
 
   instances()
   fetchSpotifyData()
-  setInterval(fetchSpotifyData, 2000)
+  setInterval(fetchSpotifyData, 4000)
   animate()
 }
 
