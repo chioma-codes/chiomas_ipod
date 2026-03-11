@@ -38,16 +38,7 @@ function init() {
 
   instances()
   fetchSpotifyData()
-  setInterval(fetchSpotifyData, 7000) // Poll Spotify every 7s
-
-  // Increment "played X mins ago" every minute if offline
-  setInterval(() => {
-    if (spotifyTrack && !spotifyTrack.isPlaying) {
-      spotifyTrack.playedAgo = (spotifyTrack.playedAgo ?? 0) + 1
-      updateInfoBox(spotifyTrack)
-    }
-  }, 60000) // 1 minute
-
+  setInterval(fetchSpotifyData, 7000) // safe 7s polling
   animate()
 }
 
@@ -78,6 +69,7 @@ function instances(){
   ipod.init()
 }
 
+// Fetch Spotify data from your backend
 async function fetchSpotifyData() {
   try {
     const response = await fetch('/api/now_playing')
@@ -85,7 +77,7 @@ async function fetchSpotifyData() {
 
     spotifyTrack = {
       isPlaying: data.isPlaying,
-      playedAgo: data.playedAgo ?? 0,
+      playedAgo: data.playedAgo,
       item: {
         name: data.song,
         artists: [{ name: data.artist }],
@@ -102,6 +94,7 @@ async function fetchSpotifyData() {
   }
 }
 
+// Update info box with "played X mins ago" if offline
 function updateInfoBox(track) {
   if (!track || !track.item) return
 
@@ -110,7 +103,7 @@ function updateInfoBox(track) {
   const album = track.item.album.name
   const albumArt = track.item.album.images[0].url
 
-  // Update title based on playing status
+  // Title updates
   if (track.isPlaying) {
     document.getElementById('main-title').textContent = "Currently Playing in Chioma's Ears"
   } else {
@@ -126,6 +119,7 @@ function updateInfoBox(track) {
   document.getElementById('info-album-art').src = albumArt
 }
 
+// Scrolling text for iPod screen
 function drawScrollingText(text, y, scrollX, maxWidth) {
   screenCtx.save()
   screenCtx.beginPath()
@@ -141,6 +135,7 @@ function drawScrollingText(text, y, scrollX, maxWidth) {
   screenCtx.restore()
 }
 
+// Draw album art and scrolling song/artist text
 function drawScreen(track) {
   if (!screenCtx) return
 
@@ -181,6 +176,7 @@ function drawScreen(track) {
   screenTexture.needsUpdate = true
 }
 
+// Animate iPod rotation and scrolling text
 function animate(){
   requestAnimationFrame(animate)
   if (meshes.ipod) {
