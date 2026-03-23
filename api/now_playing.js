@@ -1,9 +1,4 @@
-// api/now_playing.js
 import fetch from 'node-fetch'
-
-// Simple in-memory cache
-let lastTrackCache = null
-let lastTrackTime = null
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -13,7 +8,6 @@ export default async function handler(req, res) {
     const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
     const refreshToken = process.env.SPOTIFY_REFRESH_TOKEN
 
-    // get access token
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -29,53 +23,30 @@ export default async function handler(req, res) {
     const tokenData = await tokenResponse.json()
     const accessToken = tokenData.access_token
 
-    // get currently playing
     const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
       headers: { Authorization: `Bearer ${accessToken}` }
     })
 
     if (response.status === 204) {
-      // If nothing is playing, check lastTrackCache
-      if (!lastTrackCache) {
-        // fallback to most recent track
-        const recentResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        })
-        const recentData = await recentResponse.json()
-        if (recentData.items && recentData.items.length > 0) {
-          const lastTrack = recentData.items[0].track
-          lastTrackCache = lastTrack
-          lastTrackTime = Date.now()
-        } else {
-          return res.json({
-            isPlaying: false,
-            song: 'Nothing recently played',
-            artist: '',
-            album: '',
-            albumArt: '',
-            playedAgo: 0
-          })
-        }
-      }
-
-      // calculate minutes since last played
-      const minutesAgo = lastTrackTime ? Math.floor((Date.now() - lastTrackTime) / 60000) : 0
+      const recentResponse = await fetch('https://api.spotify.com/v1/me/player/recently-played?limit=1', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+      const recentData = await recentResponse.json()
+      const lastTrack = recentData.items[0].track
+      const playedAt = new Date(recentData.items[0].played_at)
+      const minutesAgo = Math.floor((Date.now() - playedAt) / 60000)
 
       return res.json({
         isPlaying: false,
-        song: lastTrackCache.name,
-        artist: lastTrackCache.artists[0].name,
-        album: lastTrackCache.album.name,
-        albumArt: lastTrackCache.album.images[0].url,
+        song: lastTrack.name,
+        artist: lastTrack.artists[0].name,
+        album: lastTrack.album.name,
+        albumArt: lastTrack.album.images[0].url,
         playedAgo: minutesAgo
       })
     }
 
     const data = await response.json()
-    // update cache
-    lastTrackCache = data.item
-    lastTrackTime = Date.now()
-
     return res.json({
       isPlaying: true,
       song: data.item.name,
@@ -84,6 +55,7 @@ export default async function handler(req, res) {
       albumArt: data.item.album.images[0].url,
       playedAgo: 0
     })
+
   } catch (error) {
     return res.status(500).json({ error: error.message })
   }
